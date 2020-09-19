@@ -210,9 +210,10 @@ extern "C" {
         int pixel_size;
 
         switch (format){
+            case K4A_IMAGE_FORMAT_COLOR_BGRA32:
+                pixel_size = (int)sizeof(uint8_t)*4;break;
             case K4A_IMAGE_FORMAT_DEPTH16:
-                pixel_size = (int)sizeof(uint16_t);
-                break;
+                pixel_size = (int)sizeof(uint16_t);break;
             default:
                 // Not supported
                 return K4A_RESULT_FAILED;
@@ -226,6 +227,49 @@ extern "C" {
                 width_pixels * height_pixels * pixel_size,
                 NULL, NULL, img_dst);
     }
+
+
+    static PyObject* transformation_color_image_to_depth_camera(
+            PyObject* self, PyObject* args){
+        k4a_result_t res;
+        
+        PyArrayObject *color_obj;
+        PyArrayObject *depth_obj;
+        PyArg_ParseTuple(args, "O!O", &PyArray_Type, &color_obj, &depth_obj);
+        
+        k4a_image_t color_image;
+        res = numpy_to_k4a_image(color_obj, &color_image, K4A_IMAGE_FORMAT_COLOR_BGRA32);
+        if(res!=K4A_RESULT_SUCCEEDED)        {            return Py_BuildValue("");        }
+        
+        k4a_image_t depth_image;
+        res = numpy_to_k4a_image(depth_obj, &depth_image, K4A_IMAGE_FORMAT_DEPTH16);
+        if(res!=K4A_RESULT_SUCCEEDED)        {k4a_image_release(color_image); return Py_BuildValue("");        }
+        
+        k4a_image_t* color_image_transformed = (k4a_image_t*) malloc(sizeof(k4a_image_t));
+        int depth_image_width_pixels = k4a_image_get_width_pixels(depth_image);
+        int depth_image_height_pixels = k4a_image_get_height_pixels(depth_image);
+        
+        res = k4a_image_create(
+                k4a_image_get_format(color_image),
+                depth_image_width_pixels,
+                depth_image_height_pixels,
+                depth_image_width_pixels * (int)sizeof(uint8_t)*4,
+                color_image_transformed);
+        if(res!=K4A_RESULT_SUCCEEDED)        {k4a_image_release(depth_image);k4a_image_release(color_image);            return Py_BuildValue("");}
+        
+        res = k4a_transformation_color_image_to_depth_camera(
+                    transformation_handle,depth_image,
+                    color_image, *color_image_transformed);
+        k4a_image_release(color_image);
+        k4a_image_release(depth_image);
+        if(res!=K4A_RESULT_SUCCEEDED)        {k4a_image_release(*color_image_transformed);            return Py_BuildValue("");        }
+        
+        PyArrayObject* np_color_image;
+        res = k4a_image_to_numpy(color_image_transformed, &np_color_image);
+        if(res!=K4A_RESULT_SUCCEEDED)        {k4a_image_release(*color_image_transformed);            return Py_BuildValue("");        }
+        return PyArray_Return(np_color_image);
+    }
+
 
     static PyObject* transformation_depth_image_to_color_camera(
             PyObject* self, PyObject* args){
@@ -404,6 +448,7 @@ extern "C" {
         {"device_get_calibration", device_get_calibration, METH_VARARGS, "Get device calibration in json format."},
         {"calibration_set_from_raw", calibration_set_from_raw, METH_VARARGS, "Temporary set the calibration from a json format. Must be called after device_start_cameras."},
         {"transformation_depth_image_to_color_camera", transformation_depth_image_to_color_camera, METH_VARARGS, "Transforms the depth map into the geometry of the color camera."},
+        {"transformation_color_image_to_depth_camera", transformation_color_image_to_depth_camera, METH_VARARGS, "Transforms the color image into the geometry of the depth camera."},
         {"transformation_depth_image_to_pcl", transformation_depth_image_to_pcl, METH_VARARGS, "Transforms the depth map into pcl map."},
         
         {NULL, NULL, 0, NULL}

@@ -110,8 +110,13 @@ class PyK4A:
             img_ir = self._get_capture_ir(transform_to_color)
         if depth:
             img_depth = self._get_capture_depth(transform_to_color)
+
             if pcl:
                 img_pcl = k4a_module.transformation_depth_image_to_pcl(img_depth, transform_to_color)
+
+        if  not transform_to_color and color and depth:
+            img_color = k4a_module.transformation_color_image_to_depth_camera(img_color,img_depth)
+
 
 
         return img_color, img_ir, img_depth, img_pcl
