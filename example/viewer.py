@@ -27,7 +27,7 @@ while 1:
     if img_ir is not None:
         img_ir= np.clip(0,255,img_ir/64 ).astype(np.uint8)
         cv2.imshow('k4a ir', img_ir)
-        out.write(np.stack([img_ir,img_ir,img_ir]).transpose([1,2,0]).copy())
+        out.write(np.stack([img_ir,img_ir,img_ir]).transpose([1,2,0]).cop)
     if img_depth is not None:
         img_depth = (img_depth.astype(float)/ np.max(img_depth) )
         cv2.imshow('k4a depth', img_depth)

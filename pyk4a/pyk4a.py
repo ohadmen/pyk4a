@@ -104,18 +104,23 @@ class PyK4A:
         res = k4a_module.device_get_capture(timeout)
         self._verify_error(res)
 
-        if color:
-            img_color = self._get_capture_color()
         if ir:
             img_ir = self._get_capture_ir(transform_to_color)
         if depth:
             img_depth = self._get_capture_depth(transform_to_color)
+        if pcl:
+            if not depth:
+                raise RuntimeError("need depth to calculate pcl")
+            img_pcl = k4a_module.transformation_depth_image_to_pcl(img_depth, transform_to_color)
+        if color:
+            img_color = self._get_capture_color()
+            if not transform_to_color:
+                if not depth:
+                    raise RuntimeError("need depth to transofrm color to depth")
+                img_color = k4a_module.transformation_color_image_to_depth_camera(img_color, img_depth)
 
-            if pcl:
-                img_pcl = k4a_module.transformation_depth_image_to_pcl(img_depth, transform_to_color)
 
-        if  not transform_to_color and color and depth:
-            img_color = k4a_module.transformation_color_image_to_depth_camera(img_color,img_depth)
+
 
 
 
