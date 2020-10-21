@@ -27,21 +27,22 @@ class PyK4A:
     def __init__(self, config=Config(), device_id=0):
         self._device_id = device_id
         self._config = config
+        self._device_open()
         self.is_running = False
 
     def __del__(self):
-        if self.is_running:
-            self.disconnect()
-
-    def connect(self):
-        self._device_open()
-        self._start_cameras()
-        self.is_running = True
-
-    def disconnect(self):
-        self._stop_cameras()
+        self.stop()
         self._device_close()
-        self.is_running = False
+
+    def start(self):
+        if not self.is_running:
+            self._start_cameras()
+            self.is_running = True
+
+    def stop(self):
+        if self.is_running:
+            self._stop_cameras()
+            self.is_running = False
 
     def get_calibration(self, as_str: bool = False):
         calibration = k4a_module.device_get_calibration()
@@ -118,6 +119,7 @@ class PyK4A:
                 if not depth:
                     raise RuntimeError("need depth to transofrm color to depth")
                 img_color = k4a_module.transformation_color_image_to_depth_camera(img_color, img_depth)
+
 
 
 
