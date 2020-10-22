@@ -101,7 +101,8 @@ class PyK4A:
         img_ir = None
         img_depth = None
         img_pcl = None
-
+        if not self.is_running:
+            self.start()
         res = k4a_module.device_get_capture(timeout)
         self._verify_error(res)
 
